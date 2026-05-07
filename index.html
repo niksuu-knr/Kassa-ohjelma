@@ -107,70 +107,131 @@
 </div>
 
 <script>
-    let items = [];
-    let selectedIdx = -1;
-    const buf = document.getElementById('buffer');
+  let items = [];
+let allReceipts = []; // Tänne tallentuvat päivän kuitit
+let receiptCounter = 1001;
+let selectedIdx = -1;
+const buf = document.getElementById('buffer');
 
-    function key(v) { buf.value += v; }
-    function clr() { buf.value = ""; }
+// --- PERUSTOIMINNOT ---
+function key(v) { buf.value += v; }
+function clr() { buf.value = ""; }
 
-    function ent() {
-        const v = buf.value;
-        if(v === "1") addItem("Kahvi", 2.50);
-        else if(v === "2") addItem("Pulla", 3.20);
-        else if(v !== "") addItem("Yleistuote", parseFloat(v) || 1.00);
-        clr();
+function ent() {
+    const v = buf.value;
+    // Yksinkertainen tuotelista testaukseen
+    const products = { "1": ["Kahvi", 2.50], "2": ["Pulla", 3.20], "3": ["Maito", 1.50] };
+    
+    if(products[v]) {
+        addItem(products[v][0], products[v][1]);
+    } else if(v.includes('*')) {
+        // Määrän syöttö esim 2*1 (kaksi kahvia)
+        const parts = v.split('*');
+        const kpl = parseInt(parts[0]);
+        const koodi = parts[1];
+        if(products[koodi]) {
+            for(let i=0; i<kpl; i++) addItem(products[koodi][0], products[koodi][1]);
+        }
+    } else if (v !== "") {
+        addItem("Yleistuote", parseFloat(v.replace(',', '.')));
     }
+    clr();
+}
 
-    function addItem(name, price) {
-        items.push({name, price});
+function addItem(name, price) {
+    items.push({name, price});
+    render();
+}
+
+function render() {
+    const list = document.getElementById('r-list');
+    list.innerHTML = "";
+    let total = 0;
+    items.forEach((it, i) => {
+        total += it.price;
+        const li = document.createElement('li');
+        li.className = `receipt-item ${selectedIdx === i ? 'selected' : ''}`;
+        li.onclick = () => { selectedIdx = i; render(); };
+        li.innerHTML = `<span>${it.name}</span><span>${it.price.toFixed(2)} €</span>`;
+        list.appendChild(li);
+    });
+    document.getElementById('total-sum').innerText = total.toFixed(2);
+}
+
+// --- F1: KUITINHAKU ---
+function openReceiptHistory() {
+    let historyHtml = "<h3>Päivän kuitit</h3><div style='max-height:300px; overflow:auto;'>";
+    if(allReceipts.length === 0) historyHtml += "<p>Ei tallennettuja kuitteja.</p>";
+    
+    allReceipts.forEach(r => {
+        historyHtml += `<div style='border-bottom:1px solid #ccc; padding:10px;'>
+            <b>Kuitti #${r.id}</b> - ${r.time}<br>
+            Summa: ${r.total} € (${r.method})
+            <button onclick="alert('Tulostetaan kuitti ${r.id}...')">Tulosta</button>
+        </div>`;
+    });
+    historyHtml += "</div>";
+    
+    // Käytetään "Lisää..." modalia pohjana näyttämiseen
+    const modal = document.getElementById('more-modal');
+    const content = modal.querySelector('.modal-content');
+    content.innerHTML = historyHtml + `<button class="modal-btn close-modal" onclick="closeMore()">SULJE</button>`;
+    modal.style.display = 'flex';
+}
+
+// --- F3: PALAUTUS ---
+function startReturn() {
+    const id = prompt("Syötä palautettavan kuitin numero (esim. 1001):");
+    const found = allReceipts.find(r => r.id == id);
+    
+    if(found) {
+        if(confirm(`Haluatko palauttaa kuitin #${id} (Summa: ${found.total} €)?`)) {
+            found.items.forEach(it => {
+                addItem("PALAUTUS: " + it.name, -it.price);
+            });
+            alert("Tuotteet lisätty hyvityksenä kuitille.");
+        }
+    } else {
+        alert("Kuittia ei löytynyt!");
+    }
+}
+
+// --- MAKSAMINEN JA TALLENNUS ---
+function pay(m) {
+    if(items.length === 0) return;
+    
+    const total = document.getElementById('total-sum').innerText;
+    
+    // Tallenna kuitti historiaan
+    allReceipts.unshift({
+        id: receiptCounter++,
+        time: new Date().toLocaleTimeString(),
+        items: [...items],
+        total: total,
+        method: m
+    });
+
+    alert(`Kuitti #${receiptCounter-1} valmis. Maksu: ${m}`);
+    items = []; 
+    render();
+}
+
+function removeItem() {
+    if(selectedIdx > -1) {
+        items.splice(selectedIdx, 1);
+        selectedIdx = -1;
         render();
     }
+}
 
-    function render() {
-        const list = document.getElementById('r-list');
-        list.innerHTML = "";
-        let total = 0;
-        items.forEach((it, i) => {
-            total += it.price;
-            const li = document.createElement('li');
-            li.className = `receipt-item ${selectedIdx === i ? 'selected' : ''}`;
-            li.onclick = () => { selectedIdx = i; render(); };
-            li.innerHTML = `<span>${it.name}</span><span>${it.price.toFixed(2)} €</span>`;
-            list.appendChild(li);
-        });
-        document.getElementById('total-sum').innerText = total.toFixed(2);
-    }
+function voidAll() { if(confirm("Mitätöidäänkö koko kuitti?")) { items = []; render(); } }
+function openMore() { location.reload(); /* Tähän voi rakentaa sen laajemman valikon */ }
+function closeMore() { document.getElementById('more-modal').style.display = 'none'; location.reload(); /* Reload vain jotta modal palautuu alkuperäiseksi tässä demossa */ }
 
-    function removeItem() {
-        if(selectedIdx > -1) {
-            items.splice(selectedIdx, 1);
-            selectedIdx = -1;
-            render();
-        } else { alert("Valitse poistettava rivi kuitilta!"); }
-    }
-
-    function voidAll() { if(confirm("Mitätöidäänkö koko kuitti?")) { items = []; render(); } }
-
-    function pay(m) {
-        if(items.length === 0) return;
-        alert("Maksettu " + m + ". Kiitos!");
-        items = []; render();
-    }
-
-    function openMore() { document.getElementById('more-modal').style.display = 'flex'; }
-    function closeMore() { document.getElementById('more-modal').style.display = 'none'; }
-
-    function report(type) {
-        alert(type + "-raportti tulostettu selaimen konsoliin (testi).");
-        console.log(type + "-RAPORTTI", items);
-        closeMore();
-    }
-
-    // Kellon päivitys
-    setInterval(() => {
-        document.getElementById('date-time').innerText = new Date().toLocaleString('fi-FI');
-    }, 1000);
+// Kellon päivitys
+setInterval(() => {
+    document.getElementById('date-time').innerText = new Date().toLocaleString('fi-FI');
+}, 1000);
 </script>
 
 </body>
