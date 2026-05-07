@@ -3,171 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kassa-ohjelma Pro</title>
+    <title>WebPOS Advanced</title>
     <style>
         :root {
-            --bg-dark: #2c313a;
-            --sidebar-bg: #e9ecef;
-            --btn-blue: #3d5afe;
-            --btn-gray: #4b5563;
-            --btn-danger: #ef4444;
-            --btn-success: #10b981;
-            --text-main: #333;
+            --bg-dark: #1a1c20;
+            --receipt-bg: #ffffff;
+            --btn-gray: #3a3f4b;
+            --btn-blue: #2980b9;
+            --btn-green: #27ae60;
+            --btn-red: #c0392b;
+            --btn-yellow: #f39c12;
+            --text-light: #ecf0f1;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg-dark); color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg-dark); color: var(--text-light); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Yläpalkki / Info */
-        .top-bar { display: flex; justify-content: space-between; padding: 10px 20px; background: #21252b; font-size: 0.9rem; border-bottom: 1px solid #444; }
+        /* Yläpalkki */
+        .header { display: flex; justify-content: space-between; padding: 10px 20px; background: #000; border-bottom: 1px solid #333; font-size: 0.85rem; }
 
         /* Pääalue */
-        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .main { display: flex; flex: 1; overflow: hidden; padding: 10px; gap: 10px; }
 
         /* Kuitti (Vasen) */
-        #receipt-area { width: 45%; background: var(--sidebar-bg); color: var(--text-main); display: flex; flex-direction: column; margin: 10px; border-radius: 4px; }
-        .receipt-header { padding: 15px; border-bottom: 2px solid #ccc; font-weight: bold; font-size: 1.2rem; color: #2c3e50; }
-        #item-list { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; }
-        .item-row { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #dee2e6; font-size: 1.1rem; }
-        .totals-area { padding: 20px; background: #ddd; font-size: 1.8rem; font-weight: bold; text-align: right; color: #000; border-radius: 0 0 4px 4px; }
+        .receipt-container { flex: 1; background: var(--receipt-bg); color: #333; border-radius: 4px; display: flex; flex-direction: column; }
+        .receipt-list { flex: 1; overflow-y: auto; padding: 0; margin: 0; list-style: none; }
+        .receipt-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .receipt-item.selected { background: #d1ecf1; }
+        .total-display { padding: 20px; background: #222; color: #fff; font-size: 2.2rem; text-align: right; font-weight: bold; }
 
-        /* Ohjauspaneeli (Oikea) */
-        #control-panel { width: 55%; display: flex; flex-direction: column; padding: 10px; gap: 10px; }
-        
-        #input-display { 
-            width: 100%; font-size: 2.5rem; padding: 15px; background: #fff; border: none; 
-            text-align: right; color: #000; border-radius: 4px; box-sizing: border-box; 
-        }
+        /* Numpad (Oikea) */
+        .controls { width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .input-box { width: 100%; font-size: 2.5rem; padding: 10px; text-align: right; border: none; border-radius: 4px; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr) 0.8fr; gap: 5px; flex: 1; }
+        .numpad button { font-size: 1.5rem; font-weight: bold; border: none; border-radius: 4px; background: #eee; cursor: pointer; }
+        .numpad button:active { background: #ccc; }
+        .btn-enter { background: var(--btn-green) !important; color: white; grid-row: span 2; }
+        .btn-del { background: var(--btn-red) !important; color: white; }
 
-        .numpad-grid { display: grid; grid-template-columns: repeat(3, 1fr) 0.5fr; gap: 8px; flex: 1; }
-        .numpad-grid button { 
-            font-size: 1.8rem; border: none; border-radius: 4px; background: #f8f9fa; color: #333; 
-            cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .numpad-grid button:active { background: #ccc; }
-        .btn-enter { background: var(--btn-success) !important; color: white !important; grid-row: span 2; }
-        .btn-clear { background: var(--btn-danger) !important; color: white !important; }
+        /* Alapalkki */
+        .footer-menu { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; background: #000; padding: 5px; }
+        .menu-btn { background: var(--btn-gray); border: none; color: white; padding: 12px 5px; font-size: 0.7rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; text-transform: uppercase; }
+        .menu-btn span { opacity: 0.6; margin-bottom: 3px; font-size: 0.6rem; }
+        .menu-btn:hover { background: #555; }
+        .btn-urgent { background: var(--btn-red); }
+        .btn-pay { background: var(--btn-blue); }
 
-        /* Alapalkin toiminnot (F-näppäimet tyylinen) */
-        .bottom-actions { 
-            display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; 
-            background: #181a1f; padding: 5px; border-top: 2px solid #444;
-        }
-        .f-btn { 
-            background: var(--btn-gray); color: white; border: none; padding: 10px 5px; 
-            font-size: 0.75rem; cursor: pointer; display: flex; flex-direction: column; align-items: center;
-        }
-        .f-btn span { font-size: 0.6rem; margin-bottom: 3px; opacity: 0.7; }
-        .f-btn:hover { background: #5a6572; }
-        .btn-pay-cash { background: #27ae60; }
-        .btn-pay-card { background: #2980b9; }
+        /* Lisää toimintoja -modali */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: #333; padding: 30px; border-radius: 10px; width: 80%; max-width: 800px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .modal-btn { padding: 20px; font-size: 1rem; border: none; border-radius: 5px; cursor: pointer; background: var(--btn-gray); color: white; }
+        .close-modal { grid-column: span 3; background: var(--btn-red); margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <div>Myyjä: Niksu | Kassa 01</div>
-    <div id="clock">02:12</div>
+<div class="header">
+    <div>KÄYTTÄJÄ: NIKSU | KASSA 1 | <span id="date-time"></span></div>
+    <div>VERKKOTILA: ONLINE</div>
 </div>
 
-<div class="main-container">
-    <section id="receipt-area">
-        <div class="receipt-header">Myynnin aloitus</div>
-        <ul id="item-list">
-            </ul>
-        <div class="totals-area">
-            YHTEENSÄ: <span id="total-val">0.00</span> €
-        </div>
-    </section>
+<div class="main">
+    <div class="receipt-container">
+        <div style="padding:10px; font-weight:bold; border-bottom:1px solid #ccc;">MYYNNIN ALOITUS</div>
+        <ul class="receipt-list" id="r-list"></ul>
+        <div class="total-display">YHTEENSÄ: <span id="total-sum">0.00</span> €</div>
+    </div>
 
-    <section id="control-panel">
-        <input type="text" id="input-display" placeholder="Tuotenumero" readonly>
-        
-        <div class="numpad-grid">
-            <button onclick="press('7')">7</button><button onclick="press('8')">8</button><button onclick="press('9')">9</button>
-            <button class="btn-clear" onclick="clearInput()">X</button>
-            
-            <button onclick="press('4')">4</button><button onclick="press('5')">5</button><button onclick="press('6')">6</button>
-            <button onclick="press('*')">Määrä</button>
-            
-            <button onclick="press('1')">1</button><button onclick="press('2')">2</button><button onclick="press('3')">3</button>
-            <button class="btn-enter" onclick="handleEnter()">ENTER</button>
-            
-            <button onclick="press('0')">0</button><button onclick="press('00')">00</button><button onclick="press('.')">,</button>
+    <div class="controls">
+        <input type="text" class="input-box" id="buffer" placeholder="Syötä koodi..." readonly>
+        <div class="numpad">
+            <button onclick="key('7')">7</button><button onclick="key('8')">8</button><button onclick="key('9')">9</button><button class="btn-del" onclick="clr()">CLR</button>
+            <button onclick="key('4')">4</button><button onclick="key('5')">5</button><button onclick="key('6')">6</button><button onclick="key('*')">KPL</button>
+            <button onclick="key('1')">1</button><button onclick="key('2')">2</button><button onclick="key('3')">3</button><button class="btn-enter" onclick="ent()">ENTER</button>
+            <button onclick="key('0')">0</button><button onclick="key('00')">00</button><button onclick="key('.')">,</button>
         </div>
-    </section>
+    </div>
 </div>
 
-<div class="bottom-actions">
-    <button class="f-btn"><span>F1</span>Kuitin haku</button>
-    <button class="f-btn"><span>F2</span>Jäsenyys</button>
-    <button class="f-btn" onclick="voidSale()"><span>F3</span>Mitätöi</button>
-    <button class="f-btn"><span>F4</span>Tuotehaku</button>
-    <button class="f-btn"><span>F5</span>Kassan haku</button>
-    <button class="f-btn"><span>F6</span>Kuitti/alennus</button>
-    <button class="f-btn btn-pay-card" onclick="pay('Kortti')"><span>F7</span>KORTTI</button>
-    <button class="f-btn btn-pay-cash" onclick="pay('Käteinen')"><span>F8</span>KÄTEINEN</button>
+<div class="footer-menu">
+    <button class="menu-btn" onclick="alert('Haku...')"><span>F1</span>Kuitinhaku</button>
+    <button class="menu-btn" onclick="alert('Tuotehaku')"><span>F2</span>Tuotehaku</button>
+    <button class="menu-btn" onclick="alert('Palautus')"><span>F3</span>Palautus</button>
+    <button class="menu-btn" onclick="removeItem()"><span>F4</span>Poista rivi</button>
+    <button class="menu-btn btn-urgent" onclick="voidAll()"><span>F5</span>Mitätöi</button>
+    <button class="menu-btn btn-pay" onclick="pay('Kortti')"><span>F6</span>Kortti</button>
+    <button class="menu-btn btn-pay" onclick="pay('Käteinen')"><span>F7</span>Käteinen</button>
+    <button class="menu-btn btn-pay" onclick="pay('Lahjakortti')"><span>F8</span>Lahjakortti</button>
+    <button class="menu-btn" onclick="openMore()"><span>F9</span>LISÄÄ...</button>
+</div>
+
+<div id="more-modal" class="modal">
+    <div class="modal-content">
+        <button class="modal-btn" onclick="alert('Myy lahjakortti')">Myy lahjakortti</button>
+        <button class="modal-btn" onclick="alert('Tuotekatalogi')">Tuotekatalogi</button>
+        <button class="modal-btn" onclick="alert('Myyjien hallinta')">Myyjien hallinta</button>
+        <button class="modal-btn" onclick="alert('Kampanjat')">Kampanjoiden hallinta</button>
+        <button class="modal-btn" onclick="alert('Jäsenrekisteri')">Jäsenrekisteri</button>
+        <button class="modal-btn" onclick="report('X')">X-Raportti</button>
+        <button class="modal-btn" onclick="report('Z')">Z-Raportti</button>
+        <button class="modal-btn" onclick="location.reload()">Kirjaudu ulos</button>
+        <button class="modal-btn close-modal" onclick="closeMore()">SULJE VALIKKO</button>
+    </div>
 </div>
 
 <script>
-    let receipt = [];
-    let display = document.getElementById('input-display');
+    let items = [];
+    let selectedIdx = -1;
+    const buf = document.getElementById('buffer');
 
-    function press(val) { display.value += val; }
-    function clearInput() { display.value = ""; }
+    function key(v) { buf.value += v; }
+    function clr() { buf.value = ""; }
 
-    function handleEnter() {
-        let val = display.value;
-        if(val === "") return;
-        
-        // Esimerkkituotteet koodilla
-        let products = {
-            "1": { name: "Kahvi", price: 2.50 },
-            "2": { name: "Pulla", price: 3.00 },
-            "641": { name: "Maito 1L", price: 1.25 }
-        };
+    function ent() {
+        const v = buf.value;
+        if(v === "1") addItem("Kahvi", 2.50);
+        else if(v === "2") addItem("Pulla", 3.20);
+        else if(v !== "") addItem("Yleistuote", parseFloat(v) || 1.00);
+        clr();
+    }
 
-        if(products[val]) {
-            receipt.push(products[val]);
-            render();
-        } else {
-            alert("Tuotetta ei löydy!");
-        }
-        clearInput();
+    function addItem(name, price) {
+        items.push({name, price});
+        render();
     }
 
     function render() {
-        const list = document.getElementById('item-list');
+        const list = document.getElementById('r-list');
         list.innerHTML = "";
         let total = 0;
-        receipt.forEach((item, idx) => {
-            total += item.price;
-            list.innerHTML += `<li class="item-row"><span>${item.name}</span><span>${item.price.toFixed(2)} €</span></li>`;
+        items.forEach((it, i) => {
+            total += it.price;
+            const li = document.createElement('li');
+            li.className = `receipt-item ${selectedIdx === i ? 'selected' : ''}`;
+            li.onclick = () => { selectedIdx = i; render(); };
+            li.innerHTML = `<span>${it.name}</span><span>${it.price.toFixed(2)} €</span>`;
+            list.appendChild(li);
         });
-        document.getElementById('total-val').innerText = total.toFixed(2);
+        document.getElementById('total-sum').innerText = total.toFixed(2);
     }
 
-    function voidSale() { if(confirm("Mitätöidäänkö myynti?")) { receipt = []; render(); } }
-
-    function pay(method) {
-        if(receipt.length === 0) return;
-        alert("Maksu suoritettu: " + method);
-        receipt = [];
-        render();
+    function removeItem() {
+        if(selectedIdx > -1) {
+            items.splice(selectedIdx, 1);
+            selectedIdx = -1;
+            render();
+        } else { alert("Valitse poistettava rivi kuitilta!"); }
     }
-    function downloadReport(data) {
-    const blob = new Blob([data], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `z-raportti-${new Date().toLocaleDateString()}.txt`;
-    a.click();
-        }
 
-    // Kello
+    function voidAll() { if(confirm("Mitätöidäänkö koko kuitti?")) { items = []; render(); } }
+
+    function pay(m) {
+        if(items.length === 0) return;
+        alert("Maksettu " + m + ". Kiitos!");
+        items = []; render();
+    }
+
+    function openMore() { document.getElementById('more-modal').style.display = 'flex'; }
+    function closeMore() { document.getElementById('more-modal').style.display = 'none'; }
+
+    function report(type) {
+        alert(type + "-raportti tulostettu selaimen konsoliin (testi).");
+        console.log(type + "-RAPORTTI", items);
+        closeMore();
+    }
+
+    // Kellon päivitys
     setInterval(() => {
-        const now = new Date();
-        document.getElementById('clock').innerText = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+        document.getElementById('date-time').innerText = new Date().toLocaleString('fi-FI');
     }, 1000);
 </script>
+
 </body>
 </html>
