@@ -36,7 +36,6 @@
             animation: spin 1s linear infinite;
         }
 
-        /* Yläpalkki */
         .header {
             background: #000;
             padding: 10px 20px;
@@ -46,9 +45,6 @@
             border-bottom: 2px solid var(--s-green);
         }
 
-        #member-display { color: var(--s-green); font-weight: bold; }
-
-        /* Pääalue */
         .main-container {
             display: grid;
             grid-template-columns: 1fr 450px;
@@ -58,7 +54,6 @@
             overflow: hidden;
         }
 
-        /* Kuittialue */
         #receipt-container {
             background: var(--receipt-bg);
             color: #000;
@@ -66,7 +61,6 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
         }
 
         #r-list {
@@ -89,13 +83,6 @@
             background: #e8f5e9; 
             border-left: 8px solid var(--s-green);
             padding-left: 5px;
-        }
-
-        /* Hallintapaneeli */
-        .side-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
         }
 
         .display-unit {
@@ -127,13 +114,11 @@
             cursor: pointer;
             border-radius: 4px;
             font-weight: bold;
-            font-size: 0.85rem;
         }
 
-        /* Alapalkki */
         .footer {
             display: grid;
-            grid-template-columns: repeat(11, 1fr);
+            grid-template-columns: repeat(10, 1fr);
             gap: 4px;
             padding: 8px;
             background: #000;
@@ -145,13 +130,12 @@
             border: 1px solid #555;
             padding: 12px 0;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             border-radius: 3px;
         }
 
         .f-btn span { display: block; font-weight: bold; color: var(--s-green); }
 
-        /* Modaalit */
         #modal-container {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -166,7 +150,7 @@
             background: var(--panel);
             padding: 30px;
             border-radius: 10px;
-            min-width: 500px;
+            min-width: 400px;
             border: 2px solid #555;
         }
 
@@ -178,7 +162,7 @@
             margin-top: 10px;
             background: #444;
             color: white;
-            font-size: 1.1rem;
+            width: 100%;
         }
     </style>
 </head>
@@ -200,7 +184,7 @@
         </div>
     </div>
 
-    <div class="side-panel">
+    <div class="side-panel" style="display:flex; flex-direction:column; gap:10px;">
         <div class="display-unit">
             <div id="buffer-val">0,00</div>
             <div id="total-val">0.00</div>
@@ -210,8 +194,8 @@
 
         <div style="flex-grow:1; background:var(--panel); padding:15px; border-radius:5px; border:1px solid #444;">
             <h3 style="margin-top:0; color:var(--s-green);">TUOTEHAKU</h3>
-            <input type="text" id="search-input" placeholder="Hae tuotetta..." oninput="searchProducts(this.value)" 
-                   style="width:100%; padding:12px; background:#000; color:#fff; border:1px solid #555;">
+            <input type="text" id="search-input" placeholder="Hae..." oninput="searchProducts(this.value)" 
+                   style="width:100%; padding:12px; background:#000; color:#fff; border:1px solid #555; box-sizing:border-box;">
             <div id="search-results" style="margin-top:10px; max-height:200px; overflow-y:auto;"></div>
         </div>
     </div>
@@ -220,12 +204,10 @@
 <div class="footer">
     <button class="f-btn" onclick="pay('KORTTI')"><span>F1</span>KORTTI</button>
     <button class="f-btn" onclick="pay('KÄTEINEN')"><span>F2</span>KÄTEINEN</button>
-    <button class="f-btn" onclick="openReceiptSearch()"><span>F3</span>KUITINHAKU</button>
     <button class="f-btn" onclick="toggleReturnMode()"><span>F4</span>PALAUTUS</button>
     <button class="f-btn" onclick="clr()"><span>F5</span>TYHJENNÄ</button>
     <button class="f-btn" onclick="deleteItem()"><span>F6</span>POISTA RIVI</button>
-    <button class="f-btn" onclick="readMemberCard()"><span>F8</span>JÄSENKORTTI</button>
-    <button class="f-btn" onclick="openMore()"><span>F9</span>LISÄÄ...</button>
+    <button class="f-btn" onclick="clearReceipt()"><span>F7</span>UUSI ASIAKAS</button>
     <button class="f-btn" onclick="openDiscountMenu()"><span>F10</span>ALENNUS</button>
     <button class="f-btn" onclick="sellGiftCard()"><span>F11</span>LAHJAKORTTI</button>
 </div>
@@ -235,34 +217,81 @@
 </div>
 
 <script>
-    // --- DATABASE ---
-    let products = JSON.parse(localStorage.getItem('prism_products')) || {
+    const products = {
         "1": { name: "Maito 1L", price: 1.15 },
         "2": { name: "Ruisleipä", price: 2.45 },
         "3": { name: "Kahvi 500g", price: 5.95 },
-        "4": { name: "Muovikassi", price: 0.25 },
-        "GIFT": { name: "LAHJAKORTTI", price: 0 }
+        "4": { name: "Muovikassi", price: 0.25 }
     };
-    let allReceipts = JSON.parse(localStorage.getItem('pos_history')) || [];
-    let memberRegistry = { "123": "MATTI MEIKÄLÄINEN" };
-    let manualDiscounts = { "1": { label: "HÄVIKKI -30%", type: "PERCENT", value: 30 }, "2": { label: "HÄVIKKI -60%", type: "PERCENT", value: 60 }};
 
-    // --- STATE ---
     let items = [];
-    let isMember = false;
+    let bufStr = "";
     let returnMode = false;
     let selectedIdx = -1;
-    let bufStr = "";
-    let rCounter = allReceipts.length + 10001;
 
-    // --- CORE ---
+    // --- PUSKURI & NÄPPÄIMET ---
+    window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.key >= '0' && e.key <= '9') { 
+            bufStr += e.key; 
+            updateBuffer(); 
+        }
+        if (e.key === 'Enter') {
+            if (bufStr !== "") {
+                addItem(bufStr);
+                clr();
+            }
+        }
+        if (e.key === 'Backspace') { 
+            bufStr = bufStr.slice(0,-1); 
+            updateBuffer(); 
+        }
+        if (e.key === 'Escape') closeModal();
+    });
+
+    function updateBuffer() {
+        const display = document.getElementById('buffer-val');
+        if (bufStr === "") {
+            display.innerText = "0,00";
+        } else {
+            const val = (parseInt(bufStr) / 100).toFixed(2);
+            display.innerText = val.replace('.', ',');
+        }
+    }
+
+    function clr() {
+        bufStr = "";
+        updateBuffer();
+    }
+
+    function clearReceipt() {
+        items = [];
+        returnMode = false;
+        clr();
+        render();
+    }
+
+    // --- TUOTTEIDEN KÄSITTELY ---
     function addItem(id) {
-        if(id === "GIFT") { sellGiftCard(); return; }
-        let p = products[id];
-        if (!p) return;
-        let price = returnMode ? -Math.abs(p.price) : p.price;
-        items.push({ name: p.name, price: price, id: id });
-        selectedIdx = items.length - 1;
+        const p = products[id];
+        if (p) {
+            let price = returnMode ? -Math.abs(p.price) : p.price;
+            items.push({ name: p.name, price: price });
+            selectedIdx = items.length - 1;
+            render();
+        }
+    }
+
+    function deleteItem() {
+        if (selectedIdx > -1) {
+            items.splice(selectedIdx, 1);
+            selectedIdx = items.length - 1;
+            render();
+        }
+    }
+
+    function toggleReturnMode() {
+        returnMode = !returnMode;
         render();
     }
 
@@ -270,12 +299,15 @@
         const list = document.getElementById('r-list');
         const totalDisp = document.getElementById('total-val');
         const subtotalDisp = document.getElementById('subtotal-display');
-        list.innerHTML = "";
-        list.style.background = "#fff";
         
+        list.innerHTML = "";
         let total = 0;
+
         if (returnMode) {
-            list.innerHTML = `<div style="background:var(--danger); color:white; text-align:center; padding:8px; font-weight:bold;">PALAUTUSTILA</div>`;
+            const header = document.createElement('div');
+            header.style = "background:var(--danger); color:white; text-align:center; padding:5px; font-weight:bold; margin-bottom:10px;";
+            header.innerText = "PALAUTUSTILA";
+            list.appendChild(header);
         }
 
         items.forEach((it, i) => {
@@ -283,138 +315,109 @@
             const row = document.createElement('div');
             row.className = `receipt-row ${selectedIdx === i ? 'selected' : ''}`;
             row.onclick = () => { selectedIdx = i; render(); };
-            row.innerHTML = `<span>${it.name.toUpperCase()}</span><span>${it.price.toFixed(2)}</span>`;
+            row.innerHTML = `<span>${it.name.toUpperCase()}</span><span>${it.price.toFixed(2)} €</span>`;
             list.appendChild(row);
         });
 
         totalDisp.innerText = total.toFixed(2);
         subtotalDisp.innerText = total.toFixed(2) + " €";
+        list.scrollTop = list.scrollHeight;
     }
 
-    // --- KEYBOARD & BUFFER ---
-    window.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT') return;
-        if (e.key >= '0' && e.key <= '9') { bufStr += e.key; updateBuffer(); }
-        if (e.key === 'Enter') {
-            if (returnMode && bufStr.length >= 4) { searchReceipt(bufStr); }
-            else { addItem(bufStr); }
-            clr();
-        }
-        if (e.key === 'Backspace') { bufStr = bufStr.slice(0,-1); updateBuffer(); }
-        if (e.key === 'Escape') closeModal();
-    });
-
-    function updateBuffer() {
-        const display = document.getElementById('buffer-val');
-        if (bufStr.length === 0) { display.innerText = "0,00"; return; }
-        display.innerText = (parseInt(bufStr) / 100).toFixed(2).replace('.', ',');
-    }
-
-    function clr() { bufStr = ""; updateBuffer(); }
-
-    // --- PAYMENTS ---
+    // --- MAKSAMINEN ---
     function pay(method) {
-        const totalSum = parseFloat(document.getElementById('total-val').innerText);
+        const total = parseFloat(document.getElementById('total-val').innerText);
         if (items.length === 0) return;
 
         if (method === 'KÄTEINEN') {
-            let given = bufStr.length > 0 ? parseInt(bufStr) / 100 : totalSum;
-            if (given < totalSum && !returnMode) { alert("SUMMA EI RIITÄ!"); return; }
-            showChangeScreen(totalSum, given, given - totalSum);
+            let given = bufStr !== "" ? parseInt(bufStr) / 100 : total;
+            if (given < total && !returnMode) {
+                alert("SYÖTETTY SUMMA EI RIITÄ!");
+                return;
+            }
+            showChange(total, given);
         } else {
-            simulateCardTerminal(totalSum);
+            simulateCard(total);
         }
     }
 
-    function simulateCardTerminal(amount) {
+    function showChange(total, given) {
+        const change = given - total;
         const inner = document.getElementById('modal-inner');
         document.getElementById('modal-container').style.display = 'flex';
         inner.innerHTML = `
-            <div style="text-align:center; padding:20px; color:white;">
-                <div style="font-size:4rem;">💳</div>
-                <h2 id="term-status" style="color:orange;">ODOTTAA KORTTIA...</h2>
-                <p style="font-size:1.5rem;">SUMMA: ${amount.toFixed(2)} €</p>
+            <div style="text-align:center; color:white;">
+                <h2>TAKAISIN:</h2>
+                <h1 style="font-size:4rem; color:var(--s-green);">${change.toFixed(2)} €</h1>
+                <button class="modal-btn" onclick="finalize()">VALMIS / TULOSTA</button>
+            </div>`;
+    }
+
+    function simulateCard(amount) {
+        const inner = document.getElementById('modal-inner');
+        document.getElementById('modal-container').style.display = 'flex';
+        inner.innerHTML = `
+            <div style="text-align:center; color:white;">
                 <div class="spinner"></div>
+                <h2 id="card-status">ODOTTAA KORTTIA...</h2>
+                <p>SUMMA: ${amount.toFixed(2)} €</p>
             </div>`;
         
-        setTimeout(() => { document.getElementById('term-status').innerText = "KÄSITELLÄÄN..."; }, 1500);
+        setTimeout(() => { document.getElementById('card-status').innerText = "KÄSITELLÄÄN..."; }, 1500);
         setTimeout(() => { 
-            document.getElementById('term-status').innerText = "MAKSU HYVÄKSYTTY!";
-            document.getElementById('term-status').style.color = "var(--s-green)";
-            setTimeout(() => { finalizeTransaction('KORTTI', amount, amount, 0); }, 1000);
+            document.getElementById('card-status').innerText = "HYVÄKSYTTY!";
+            setTimeout(() => finalize(), 1000);
         }, 3000);
     }
 
-    function showChangeScreen(t, g, c) {
-        const inner = document.getElementById('modal-inner');
-        inner.innerHTML = `
-            <div style="text-align:center; color:white;">
-                <p style="font-size:1.5rem;">TAKAISIN</p>
-                <h1 style="font-size:5rem; color:var(--s-green); margin:0;">${c.toFixed(2)} €</h1>
-                <button class="modal-btn" style="width:100%; background:var(--s-green);" onclick="finalizeTransaction('KÄTEINEN', ${t}, ${g}, ${c})">KUITTAA MAKSU</button>
-            </div>`;
-        document.getElementById('modal-container').style.display = 'flex';
-    }
-
-    function finalizeTransaction(m, t, g, c) {
-        const receiptData = { id: rCounter++, time: new Date().toLocaleString('fi-FI'), items: [...items], total: t.toFixed(2), method: m, given: g.toFixed(2), change: c.toFixed(2) };
-        allReceipts.unshift(receiptData);
-        localStorage.setItem('pos_history', JSON.stringify(allReceipts));
-        printPaperReceipt(receiptData);
-        items = []; returnMode = false; clr();
-    }
-
-    function printPaperReceipt(data) {
-        const list = document.getElementById('r-list');
-        let html = `<div style="text-align:center; font-family:'Courier New'; border:1px solid #ccc; padding:10px; color:#000;">
-            <h3>PRISMA MARKET</h3><p>${data.time}<br>KUITTI: ${data.id}</p><hr>`;
-        data.items.forEach(it => { html += `<div style="display:flex; justify-content:space-between;"><span>${it.name.toUpperCase()}</span><span>${it.price.toFixed(2)}</span></div>`; });
-        html += `<hr><h2 style="display:flex; justify-content:space-between;"><span>YHTEENSÄ</span><span>${data.total}€</span></h2>
-            <div style="text-align:left;">MAKSU: ${data.method}<br>ANNETTU: ${data.given}€<br>VAIHTORAHA: ${data.change}€</div>
-            <p>KIITOS ASIOINNISTA!</p>
-            <button class="modal-btn" style="width:100%; background:#000;" onclick="render()">UUSI ASIAKAS</button></div>`;
-        list.innerHTML = html;
+    function finalize() {
         closeModal();
+        alert("Kuitti tulostettu. Aloitetaan uusi kauppa.");
+        clearReceipt();
     }
 
-    // --- OTHER FUNCTIONS ---
-    function toggleReturnMode() { returnMode = !returnMode; render(); }
-    function deleteItem() { if(selectedIdx > -1) { items.splice(selectedIdx, 1); selectedIdx = items.length - 1; render(); } }
-    function clr() { items = []; render(); }
-    function closeModal() { document.getElementById('modal-container').style.display = 'none'; }
+    function closeModal() {
+        document.getElementById('modal-container').style.display = 'none';
+    }
 
-    function searchProducts(query) {
+    // --- APUTOIMINNOT ---
+    function searchProducts(q) {
         const res = document.getElementById('search-results');
         res.innerHTML = "";
-        if (query.length < 2) return;
+        if (q.length < 1) return;
         for (let id in products) {
-            if (products[id].name.toLowerCase().includes(query.toLowerCase())) {
-                const div = document.createElement('div');
-                div.style.padding = "10px"; div.style.background = "#333"; div.style.margin = "2px 0"; div.style.cursor = "pointer";
-                div.innerHTML = `${products[id].name} <span style="float:right">${products[id].price}€</span>`;
-                div.onclick = () => { addItem(id); document.getElementById('search-input').value = ""; res.innerHTML = ""; };
-                res.appendChild(div);
+            if (products[id].name.toLowerCase().includes(q.toLowerCase())) {
+                const d = document.createElement('div');
+                d.style = "padding:10px; background:#333; margin:2px; cursor:pointer;";
+                d.innerHTML = `${products[id].name} <span style="float:right">${products[id].price}€</span>`;
+                d.onclick = () => { addItem(id); res.innerHTML = ""; document.getElementById('search-input').value = ""; };
+                res.appendChild(d);
             }
         }
     }
 
     function renderQuickKeys() {
         const bar = document.getElementById('quick-keys-bar');
-        ["1", "2", "3", "4", "GIFT"].forEach(id => {
-            if (products[id]) {
-                const btn = document.createElement('div');
-                btn.className = "q-btn";
-                btn.innerHTML = `${products[id].name}<br>${products[id].price}€`;
-                btn.onclick = () => addItem(id);
-                bar.appendChild(btn);
-            }
-        });
+        for (let id in products) {
+            const b = document.createElement('div');
+            b.className = "q-btn";
+            b.innerHTML = `${products[id].name}<br>${products[id].price}€`;
+            b.onclick = () => addItem(id);
+            bar.appendChild(b);
+        }
+    }
+
+    function sellGiftCard() {
+        let val = prompt("Syötä lahjakortin arvo (€):", "20.00");
+        if (val) {
+            items.push({ name: "LAHJAKORTTI", price: parseFloat(val) });
+            render();
+        }
     }
 
     window.onload = () => {
         renderQuickKeys();
-        render();
-        setInterval(() => { document.getElementById('date-time').innerText = new Date().toLocaleString(); }, 1000);
+        setInterval(() => { document.getElementById('date-time').innerText = new Date().toLocaleString('fi-FI'); }, 1000);
     };
 </script>
 </body>
