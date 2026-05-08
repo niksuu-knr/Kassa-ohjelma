@@ -36,6 +36,7 @@
             animation: spin 1s linear infinite;
         }
 
+        /* Yläpalkki */
         .header {
             background: #000;
             padding: 10px 20px;
@@ -45,6 +46,7 @@
             border-bottom: 2px solid var(--s-green);
         }
 
+        /* Pääasettelu */
         .main-container {
             display: grid;
             grid-template-columns: 1fr 450px;
@@ -54,6 +56,7 @@
             overflow: hidden;
         }
 
+        /* Kuittialue */
         #receipt-container {
             background: var(--receipt-bg);
             color: #000;
@@ -85,37 +88,62 @@
             padding-left: 5px;
         }
 
+        /* Hallintapaneeli */
         .display-unit {
             background: #000;
-            padding: 25px;
+            padding: 20px;
             text-align: right;
             border: 2px solid #444;
             border-radius: 5px;
+            margin-bottom: 10px;
         }
 
-        #total-val { font-size: 4.5rem; color: var(--s-green); font-weight: bold; line-height: 1; }
-        #buffer-val { font-size: 1.8rem; color: #fff; min-height: 2rem; letter-spacing: 2px; }
+        #total-val { font-size: 3.5rem; color: var(--s-green); font-weight: bold; line-height: 1; }
+        #buffer-val { font-size: 1.5rem; color: #fff; min-height: 1.8rem; letter-spacing: 2px; }
+
+        /* Numeronäppäimistö */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .n-btn {
+            background: #444;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .n-btn:active { background: var(--s-green); }
+        .n-btn.wide { grid-column: span 2; }
+        .n-btn.enter { background: var(--s-green); height: 100%; grid-row: span 2; }
 
         .quick-keys {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            padding: 10px;
-            background: var(--panel);
-            border-radius: 5px;
+            gap: 5px;
+            margin-bottom: 10px;
         }
 
         .q-btn {
-            background: linear-gradient(145deg, #444, #222);
+            background: #333;
             border: 1px solid #555;
             color: white;
-            padding: 15px 5px;
+            padding: 10px 5px;
             text-align: center;
             cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
+            font-size: 0.8rem;
         }
 
+        /* Alapalkki */
         .footer {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
@@ -131,7 +159,6 @@
             padding: 12px 0;
             cursor: pointer;
             font-size: 0.7rem;
-            border-radius: 3px;
         }
 
         .f-btn span { display: block; font-weight: bold; color: var(--s-green); }
@@ -150,19 +177,8 @@
             background: var(--panel);
             padding: 30px;
             border-radius: 10px;
-            min-width: 400px;
+            min-width: 350px;
             border: 2px solid #555;
-        }
-
-        .modal-btn {
-            padding: 18px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-            background: #444;
-            color: white;
-            width: 100%;
         }
     </style>
 </head>
@@ -170,7 +186,6 @@
 
 <div class="header">
     <div>KASSA: 01 | MYYJÄ: 001</div>
-    <div id="member-display"></div>
     <div id="date-time"></div>
 </div>
 
@@ -184,7 +199,7 @@
         </div>
     </div>
 
-    <div class="side-panel" style="display:flex; flex-direction:column; gap:10px;">
+    <div class="side-panel">
         <div class="display-unit">
             <div id="buffer-val">0,00</div>
             <div id="total-val">0.00</div>
@@ -192,11 +207,25 @@
 
         <div class="quick-keys" id="quick-keys-bar"></div>
 
-        <div style="flex-grow:1; background:var(--panel); padding:15px; border-radius:5px; border:1px solid #444;">
-            <h3 style="margin-top:0; color:var(--s-green);">TUOTEHAKU</h3>
-            <input type="text" id="search-input" placeholder="Hae..." oninput="searchProducts(this.value)" 
-                   style="width:100%; padding:12px; background:#000; color:#fff; border:1px solid #555; box-sizing:border-box;">
-            <div id="search-results" style="margin-top:10px; max-height:200px; overflow-y:auto;"></div>
+        <div class="numpad">
+            <button class="n-btn" onclick="numPress('7')">7</button>
+            <button class="n-btn" onclick="numPress('8')">8</button>
+            <button class="n-btn" onclick="numPress('9')">9</button>
+            <button class="n-btn" onclick="numPress('4')">4</button>
+            <button class="n-btn" onclick="numPress('5')">5</button>
+            <button class="n-btn" onclick="numPress('6')">6</button>
+            <button class="n-btn" onclick="numPress('1')">1</button>
+            <button class="n-btn" onclick="numPress('2')">2</button>
+            <button class="n-btn" onclick="numPress('3')">3</button>
+            <button class="n-btn wide" onclick="numPress('0')">0</button>
+            <button class="n-btn" onclick="clr()">C</button>
+            <button class="n-btn enter" style="grid-column: 4; grid-row: 1/span 4;" onclick="handleEnter()">ENTER</button>
+        </div>
+
+        <div style="margin-top:10px;">
+            <input type="text" id="search-input" placeholder="Haku..." oninput="searchProducts(this.value)" 
+                   style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #555;">
+            <div id="search-results" style="max-height:150px; overflow-y:auto;"></div>
         </div>
     </div>
 </div>
@@ -208,7 +237,6 @@
     <button class="f-btn" onclick="clr()"><span>F5</span>TYHJENNÄ</button>
     <button class="f-btn" onclick="deleteItem()"><span>F6</span>POISTA RIVI</button>
     <button class="f-btn" onclick="clearReceipt()"><span>F7</span>UUSI ASIAKAS</button>
-    <button class="f-btn" onclick="openDiscountMenu()"><span>F10</span>ALENNUS</button>
     <button class="f-btn" onclick="sellGiftCard()"><span>F11</span>LAHJAKORTTI</button>
 </div>
 
@@ -229,85 +257,48 @@
     let returnMode = false;
     let selectedIdx = -1;
 
-    // --- PUSKURI & NÄPPÄIMET ---
+    // --- NÄPPÄIMISTÖ ---
+    function numPress(n) { bufStr += n; updateBuffer(); }
+    function clr() { bufStr = ""; updateBuffer(); }
+    
+    function handleEnter() {
+        if (bufStr !== "") {
+            addItem(bufStr);
+            clr();
+        }
+    }
+
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT') return;
-        if (e.key >= '0' && e.key <= '9') { 
-            bufStr += e.key; 
-            updateBuffer(); 
-        }
-        if (e.key === 'Enter') {
-            if (bufStr !== "") {
-                addItem(bufStr);
-                clr();
-            }
-        }
-        if (e.key === 'Backspace') { 
-            bufStr = bufStr.slice(0,-1); 
-            updateBuffer(); 
-        }
-        if (e.key === 'Escape') closeModal();
+        if (e.key >= '0' && e.key <= '9') numPress(e.key);
+        if (e.key === 'Enter') handleEnter();
+        if (e.key === 'Backspace') { bufStr = bufStr.slice(0,-1); updateBuffer(); }
     });
 
     function updateBuffer() {
-        const display = document.getElementById('buffer-val');
-        if (bufStr === "") {
-            display.innerText = "0,00";
-        } else {
-            const val = (parseInt(bufStr) / 100).toFixed(2);
-            display.innerText = val.replace('.', ',');
-        }
+        const d = document.getElementById('buffer-val');
+        if (bufStr === "") d.innerText = "0,00";
+        else d.innerText = (parseInt(bufStr) / 100).toFixed(2).replace('.', ',');
     }
 
-    function clr() {
-        bufStr = "";
-        updateBuffer();
-    }
-
-    function clearReceipt() {
-        items = [];
-        returnMode = false;
-        clr();
-        render();
-    }
-
-    // --- TUOTTEIDEN KÄSITTELY ---
+    // --- LOGIIKKA ---
     function addItem(id) {
         const p = products[id];
         if (p) {
-            let price = returnMode ? -Math.abs(p.price) : p.price;
-            items.push({ name: p.name, price: price });
+            items.push({ name: p.name, price: returnMode ? -p.price : p.price });
             selectedIdx = items.length - 1;
             render();
         }
-    }
-
-    function deleteItem() {
-        if (selectedIdx > -1) {
-            items.splice(selectedIdx, 1);
-            selectedIdx = items.length - 1;
-            render();
-        }
-    }
-
-    function toggleReturnMode() {
-        returnMode = !returnMode;
-        render();
     }
 
     function render() {
         const list = document.getElementById('r-list');
-        const totalDisp = document.getElementById('total-val');
-        const subtotalDisp = document.getElementById('subtotal-display');
-        
         list.innerHTML = "";
+        list.style.background = "#fff"; // Palautetaan valkoinen tausta kuitille
         let total = 0;
 
         if (returnMode) {
-            const header = document.createElement('div');
-            header.style = "background:var(--danger); color:white; text-align:center; padding:5px; font-weight:bold; margin-bottom:10px;";
-            header.innerText = "PALAUTUSTILA";
-            list.appendChild(header);
+            list.innerHTML = `<div style="background:red; color:white; text-align:center; font-weight:bold;">PALAUTUSTILA</div>`;
         }
 
         items.forEach((it, i) => {
@@ -319,68 +310,82 @@
             list.appendChild(row);
         });
 
-        totalDisp.innerText = total.toFixed(2);
-        subtotalDisp.innerText = total.toFixed(2) + " €";
-        list.scrollTop = list.scrollHeight;
+        document.getElementById('total-val').innerText = total.toFixed(2);
+        document.getElementById('subtotal-display').innerText = total.toFixed(2) + " €";
     }
 
-    // --- MAKSAMINEN ---
+    // --- MAKSAMINEN JA PAPERIKUITTI ---
     function pay(method) {
         const total = parseFloat(document.getElementById('total-val').innerText);
         if (items.length === 0) return;
 
         if (method === 'KÄTEINEN') {
             let given = bufStr !== "" ? parseInt(bufStr) / 100 : total;
-            if (given < total && !returnMode) {
-                alert("SYÖTETTY SUMMA EI RIITÄ!");
-                return;
-            }
-            showChange(total, given);
+            const change = given - total;
+            
+            // Näytetään vaihtoraha hetken aikaa modaalissa
+            const inner = document.getElementById('modal-inner');
+            document.getElementById('modal-container').style.display = 'flex';
+            inner.innerHTML = `<div style="text-align:center; color:white;">
+                <h2>TAKAISIN:</h2><h1 style="font-size:4rem; color:var(--s-green);">${change.toFixed(2)} €</h1>
+                <button class="modal-btn" onclick="printReceipt('${method}', ${total}, ${given}, ${change})">TULOSTA KUITTI</button>
+            </div>`;
         } else {
             simulateCard(total);
         }
     }
 
-    function showChange(total, given) {
-        const change = given - total;
-        const inner = document.getElementById('modal-inner');
-        document.getElementById('modal-container').style.display = 'flex';
-        inner.innerHTML = `
-            <div style="text-align:center; color:white;">
-                <h2>TAKAISIN:</h2>
-                <h1 style="font-size:4rem; color:var(--s-green);">${change.toFixed(2)} €</h1>
-                <button class="modal-btn" onclick="finalize()">VALMIS / TULOSTA</button>
-            </div>`;
-    }
-
     function simulateCard(amount) {
         const inner = document.getElementById('modal-inner');
         document.getElementById('modal-container').style.display = 'flex';
-        inner.innerHTML = `
-            <div style="text-align:center; color:white;">
-                <div class="spinner"></div>
-                <h2 id="card-status">ODOTTAA KORTTIA...</h2>
-                <p>SUMMA: ${amount.toFixed(2)} €</p>
-            </div>`;
-        
-        setTimeout(() => { document.getElementById('card-status').innerText = "KÄSITELLÄÄN..."; }, 1500);
-        setTimeout(() => { 
-            document.getElementById('card-status').innerText = "HYVÄKSYTTY!";
-            setTimeout(() => finalize(), 1000);
-        }, 3000);
+        inner.innerHTML = `<div style="text-align:center; color:white;"><div class="spinner"></div><h2>KÄSITELLÄÄN...</h2></div>`;
+        setTimeout(() => { printReceipt('KORTTI', amount, amount, 0); }, 2000);
     }
 
-    function finalize() {
-        closeModal();
-        alert("Kuitti tulostettu. Aloitetaan uusi kauppa.");
-        clearReceipt();
-    }
-
-    function closeModal() {
+    function printReceipt(method, total, given, change) {
         document.getElementById('modal-container').style.display = 'none';
+        const list = document.getElementById('r-list');
+        
+        let receiptHtml = `
+            <div style="text-align:center; font-family:'Courier New'; color:#000; padding:10px; border:1px solid #ccc;">
+                <h2 style="margin:0;">PRISMA MARKET</h2>
+                <p style="font-size:0.8rem;">${new Date().toLocaleString()}<br>KUITTI: ${Math.floor(Math.random()*90000)}</p>
+                <hr style="border:none; border-top:1px dashed #000;">
+        `;
+        
+        items.forEach(it => {
+            receiptHtml += `<div style="display:flex; justify-content:space-between;"><span>${it.name.toUpperCase()}</span><span>${it.price.toFixed(2)}</span></div>`;
+        });
+
+        receiptHtml += `
+                <hr style="border:none; border-top:1px dashed #000;">
+                <h3 style="display:flex; justify-content:space-between;"><span>YHTEENSÄ</span><span>${total.toFixed(2)} €</span></h3>
+                <div style="text-align:left; font-size:0.9rem;">
+                    MAKSU: ${method}<br>
+                    ANNETTU: ${given.toFixed(2)} €<br>
+                    VAIHTORAHA: ${change.toFixed(2)} €
+                </div>
+                <p style="margin-top:20px; font-weight:bold;">KIITOS ASIOINNISTA!</p>
+                <button onclick="clearReceipt()" style="width:100%; padding:10px; background:#000; color:#fff; cursor:pointer; margin-top:10px;">SULJE</button>
+            </div>
+        `;
+        
+        list.innerHTML = receiptHtml;
+        list.scrollTop = 0;
     }
 
-    // --- APUTOIMINNOT ---
+    function clearReceipt() {
+        items = [];
+        returnMode = false;
+        clr();
+        render();
+    }
+
+    function toggleReturnMode() { returnMode = !returnMode; render(); }
+    function deleteItem() { if(selectedIdx > -1) { items.splice(selectedIdx, 1); selectedIdx = items.length-1; render(); } }
+    function closeModal() { document.getElementById('modal-container').style.display = 'none'; }
+
+    // --- TUOTEHAKU ---
     function searchProducts(q) {
         const res = document.getElementById('search-results');
         res.innerHTML = "";
@@ -388,8 +393,8 @@
         for (let id in products) {
             if (products[id].name.toLowerCase().includes(q.toLowerCase())) {
                 const d = document.createElement('div');
-                d.style = "padding:10px; background:#333; margin:2px; cursor:pointer;";
-                d.innerHTML = `${products[id].name} <span style="float:right">${products[id].price}€</span>`;
+                d.style = "padding:8px; background:#333; margin:2px; cursor:pointer; font-size:0.9rem;";
+                d.innerHTML = `${products[id].name} (${products[id].price}€)`;
                 d.onclick = () => { addItem(id); res.innerHTML = ""; document.getElementById('search-input').value = ""; };
                 res.appendChild(d);
             }
@@ -404,14 +409,6 @@
             b.innerHTML = `${products[id].name}<br>${products[id].price}€`;
             b.onclick = () => addItem(id);
             bar.appendChild(b);
-        }
-    }
-
-    function sellGiftCard() {
-        let val = prompt("Syötä lahjakortin arvo (€):", "20.00");
-        if (val) {
-            items.push({ name: "LAHJAKORTTI", price: parseFloat(val) });
-            render();
         }
     }
 
